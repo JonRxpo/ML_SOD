@@ -26,14 +26,20 @@ https://www.cuhk.edu.cn/en/saliency/dataset/ecssd/
 
 Place files like this:
 
-data/
- ├── ecssd_raw/
- │    ├── images/
- │    └── masks/
- └── ecssd/
-     ├── train/
-     ├── val/
-     └── test/
+data/ecssd_raw/ – This is where you place the original ECSSD dataset after downloading it.
+
+images/ → contains all input images
+
+masks/ → contains the ground-truth saliency masks
+
+data/ecssd/ – This folder is created automatically after running split_ecssd.py.
+It contains the processed dataset split into:
+
+train/ → used for model training
+
+val/ → used for validation
+
+test/ → used for final testing and evaluation
 
 
 Then split the dataset:
@@ -58,10 +64,10 @@ pip install -r requirements.txt
 
 3. Model – UNet Architecture
 
-✔ Encoder → Bottleneck → Decoder (skip connections)
-✔ Output: 1-channel mask (sigmoid)
-✔ Loss: BCE + 0.5 × (1 − IoU)
-✔ Optimizer: Adam (lr = 1e-3)
+Encoder → Bottleneck → Decoder (skip connections)
+Output: 1-channel mask (sigmoid)
+Loss: BCE + 0.5 × (1 − IoU)
+Optimizer: Adam (lr = 1e-3)
 
 4. Training
 python src/train.py \
