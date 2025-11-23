@@ -1,83 +1,83 @@
-import argparse
+import sys
 import os
-
+import argparse
 import tensorflow as tf
 from keras.optimizers import Adam
 
+sys.path.append(".")
+
 from src.data_loader import build_dataset
-from src.sod_model import build_unet_like_model, bce_iou_loss
+from src.sod_model_exp import build_unet_experiment, bce_iou_loss 
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Train SOD model (TensorFlow/Keras).")
-    parser.add_argument("--train_images", type=str, required=True)
-    parser.add_argument("--train_masks", type=str, required=True)
-    parser.add_argument("--val_images", type=str, required=True)
-    parser.add_argument("--val_masks", type=str, required=True)
-    parser.add_argument("--img_size", type=int, nargs=2, default=[128, 128])
+
+    parser = argparse.ArgumentParser(description="Train SOD model on ECSSD dataset")
+    parser.add_argument("--train_images", required=True, help="Path to training images")
+    parser.add_argument("--train_masks", required=True, help="Path to training masks")
+    parser.add_argument("--val_images", required=True, help="Path to validation images")
+    parser.add_argument("--val_masks", required=True, help="Path to validation masks")
+    parser.add_argument("--img_size", nargs=2, type=int, default=[128, 128])
     parser.add_argument("--batch_size", type=int, default=8)
     parser.add_argument("--epochs", type=int, default=20)
     parser.add_argument("--lr", type=float, default=1e-3)
-    parser.add_argument("--checkpoint_dir", type=str, default="checkpoints")
+    parser.add_argument("--checkpoint_dir", type=str, default="checkpoints/ecssd")
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
-    os.makedirs(args.checkpoint_dir, exist_ok=True)
 
+  
     train_ds = build_dataset(
-        args.train_images,
-        args.train_masks,
+        args.train_images, args.train_masks,
         img_size=tuple(args.img_size),
         batch_size=args.batch_size,
-        shuffle=True,
-        augment=True,
+        shuffle=True, augment=True
     )
 
     val_ds = build_dataset(
-        args.val_images,
-        args.val_masks,
+        args.val_images, args.val_masks,
         img_size=tuple(args.img_size),
         batch_size=args.batch_size,
-        shuffle=False,
-        augment=False,
+        shuffle=False, augment=False
     )
 
-    model = build_unet_like_model(
-        input_shape=(args.img_size[0], args.img_size[1], 3)
-    )
+  
+    model = build_unet_experiment(input_shape=(args.img_size[0], args.img_size[1], 3))
     model.compile(
-        optimizer=Adam(learning_rate=args.lr),
+        optimizer=Adam(args.lr),
         loss=bce_iou_loss,
-        metrics=["accuracy"], 
+        metrics=["accuracy"]
     )
 
-    ckpt_path = os.path.join(args.checkpoint_dir, "best_model.keras")
+    model.summary()
+
+  
+    os.makedirs(args.checkpoint_dir, exist_ok=True)
+
     checkpoint_cb = tf.keras.callbacks.ModelCheckpoint(
-        filepath=ckpt_path,
-        monitor="val_loss",
+        filepath=f"{args.checkpoint_dir}/best_model.keras",
         save_best_only=True,
-        save_weights_only=False,
-        verbose=1,
+        monitor="val_loss",
+        verbose=1
     )
 
     early_stop_cb = tf.keras.callbacks.EarlyStopping(
         monitor="val_loss",
         patience=5,
-        restore_best_weights=True,
-        verbose=1,
+        restore_best_weights=True
     )
 
-    model.fit(
+    history = model.fit(
         train_ds,
         validation_data=val_ds,
         epochs=args.epochs,
-        callbacks=[checkpoint_cb, early_stop_cb],
+        callbacks=[checkpoint_cb, early_stop_cb]
     )
 
-    model.save(os.path.join(args.checkpoint_dir, "final_model.keras"))
-    print("Training completed. Models saved in:", args.checkpoint_dir)
+    model.save(f"{args.checkpoint_dir}/final_model.keras")
+    print(f"Training complete. Models saved in: {args.checkpoint_dir}")
 
 
 if __name__ == "__main__":

@@ -1,9 +1,9 @@
 import os
 from typing import Tuple
-
 import tensorflow as tf
 
 AUTOTUNE = tf.data.AUTOTUNE
+tf.random.set_seed(42)
 
 
 def _load_image(path: tf.Tensor, img_size: Tuple[int, int]) -> tf.Tensor:
@@ -39,26 +39,18 @@ def build_dataset(
     shuffle: bool = True,
     augment: bool = True,
 ) -> tf.data.Dataset:
-    image_paths = sorted(
-        [
-            os.path.join(images_dir, f)
-            for f in os.listdir(images_dir)
-            if f.lower().endswith((".jpg", ".jpeg", ".png"))
-        ]
-    )
-    mask_paths = sorted(
-        [
-            os.path.join(masks_dir, f)
-            for f in os.listdir(masks_dir)
-            if f.lower().endswith((".jpg", ".jpeg", ".png"))
-        ]
-    )
 
-    if len(image_paths) != len(mask_paths):
-        print(
-            f"[WARNING] Number of images ({len(image_paths)}) "
-            f"and masks ({len(mask_paths)}) do not match."
-        )
+    image_paths = sorted([
+        os.path.join(images_dir, f)
+        for f in os.listdir(images_dir)
+        if f.lower().endswith((".jpg", ".jpeg", ".png"))
+    ])
+
+    mask_paths = sorted([
+        os.path.join(masks_dir, f)
+        for f in os.listdir(masks_dir)
+        if f.lower().endswith((".jpg", ".jpeg", ".png"))
+    ])
 
     img_ds = tf.data.Dataset.from_tensor_slices(image_paths)
     msk_ds = tf.data.Dataset.from_tensor_slices(mask_paths)
@@ -77,5 +69,4 @@ def build_dataset(
     if shuffle:
         ds = ds.shuffle(buffer_size=len(image_paths))
 
-    ds = ds.batch(batch_size).prefetch(AUTOTUNE)
-    return ds
+    return ds.batch(batch_size).prefetch(AUTOTUNE)
